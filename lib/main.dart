@@ -1,4 +1,4 @@
-import 'dart:js';
+// import 'dart:js';
 
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +7,11 @@ import 'package:intrusion_detection_app/Screen/NetworkScanning/networkScanningSc
 
 void main() {
   runApp(
-    DevicePreview(
-      builder: (context) => const MyApp(),
-      enabled: true,
-    ),
+    // DevicePreview(
+    //   builder: (context) => const MyApp(),
+    //   enabled: true,
+    // ),
+      const MyApp()
   );
 }
 

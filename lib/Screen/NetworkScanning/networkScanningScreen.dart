@@ -1,10 +1,42 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
-class NetworkScanningScreen extends StatelessWidget {
+class NetworkScanningScreen extends StatefulWidget {
   NetworkScanningScreen({super.key});
 
+  @override
+  State<NetworkScanningScreen> createState() => _NetworkScanningScreenState();
+}
+
+class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   final List<String> items = <String>["network 1", "network 2"];
 
+  List<String> connectedDevices = [];
+
+  void scanNetwork() async {
+    final String ip = '192.168.100.1'; // Set the base IP of your local network
+
+    for (int i = 1; i <= 255; i++) {
+      final String host = '$ip.$i';
+      final result = await _ping(host);
+      if (result) {
+        setState(() {
+          connectedDevices.add(host);
+          debugPrint("scanNetwork: " + host);
+        });
+      }
+    }
+  }
+
+  Future<bool> _ping(String host) async {
+    try {
+      final result = await InternetAddress.lookup(host);
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +59,11 @@ class NetworkScanningScreen extends StatelessWidget {
                   children: [
                     Text('Connected To'),
                     Text('STATUS'),
+                    ElevatedButton(
+                        onPressed: () {
+                          scanNetwork();
+                        },
+                        child: Text('Scan Network'))
                   ],
                 ),
               ),
