@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'devicesModel.dart';
 
 class NetworkScanningScreen extends StatefulWidget {
   NetworkScanningScreen({super.key});
@@ -12,30 +17,93 @@ class NetworkScanningScreen extends StatefulWidget {
 class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   final List<String> items = <String>["network 1", "network 2"];
 
-  List<String> connectedDevices = [];
+  late Future<Devices> device;
+  String enteredName = "";
+  bool connected = false;
 
-  void scanNetwork() async {
-    final String ip = '192.168.100.1'; // Set the base IP of your local network
+  Future<Devices> fetchAlbum() async {
+    final response =
+        await http.get(Uri.parse('http://192.168.100.57:8080/api/data'));
 
-    for (int i = 1; i <= 255; i++) {
-      final String host = '$ip.$i';
-      final result = await _ping(host);
-      if (result) {
-        setState(() {
-          connectedDevices.add(host);
-          debugPrint("scanNetwork: " + host);
-        });
-      }
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      debugPrint("response: Success");
+      setState(() {
+        connected = true;
+      });
+      return Devices.fromJson(jsonDecode(response.body));
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      setState(() {
+        connected = false;
+      });
+      throw Exception('Failed to load album');
     }
   }
 
-  Future<bool> _ping(String host) async {
-    try {
-      final result = await InternetAddress.lookup(host);
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException catch (_) {
-      return false;
+  Future<void> updateName(
+      String ip, String name, String mac, int status) async {
+    final response = await http.get(Uri.parse(
+        'http://192.168.100.57:8080/api/update/$ip/$name/$mac/$status'));
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      debugPrint("response: Success");
+      setState(() {
+        connected = true;
+      });
+      fetchAlbum();
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      setState(() {
+        connected = false;
+      });
+      throw Exception('Failed to update name');
     }
+  }
+
+  Future<void> updateStatus(
+      String ip, String name, String mac, int status) async {
+    final response = await http.get(Uri.parse(
+        'http://192.168.100.57:8080/api/update_status/$ip/$name/$mac/$status'));
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      debugPrint("response: Success");
+      setState(() {
+        connected = true;
+      });
+      fetchAlbum();
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      setState(() {
+        connected = false;
+      });
+      throw Exception('Failed to update name');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    device = fetchAlbum();
+    Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+      setState(() {
+        device = fetchAlbum(); /**/
+        debugPrint("timer"); /*Future*/
+      });
+    });
+  }
+
+  Future<void> listNetwork() async {
+    Devices device = await fetchAlbum();
+    debugPrint(device.devices.elementAt(1).ip);
   }
 
   @override
@@ -57,13 +125,8 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Connected To'),
                     Text('STATUS'),
-                    ElevatedButton(
-                        onPressed: () {
-                          scanNetwork();
-                        },
-                        child: Text('Scan Network'))
+                    connected == true ? const Text('CONNECTED') : const Text('DISCONNECT'),
                   ],
                 ),
               ),
@@ -72,28 +135,150 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
               child: Card(
                 child: SizedBox(
                   width: double.infinity,
-                  child: ListView.builder(
-                      padding: const EdgeInsets.all(0),
-                      itemCount: items.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 5.0),
-                          child: Card(
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [Text((items[index]))],
+                  child: FutureBuilder<Devices>(
+                    future: device,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return ListView.builder(
+                            padding: const EdgeInsets.all(0),
+                            itemCount: snapshot.data?.devices.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 5.0),
+                                child: Card(
+                                  elevation: 3,
+                                  clipBehavior: Clip.hardEdge,
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: InkWell(
+                                      splashColor: Colors.blue.withAlpha(30),
+                                      onLongPress: () => showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) =>
+                                            AlertDialog(
+                                          title: const Text("Enter Name"),
+                                          content: TextField(
+                                            decoration: const InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              labelText: '',
+                                            ),
+                                            onChanged: (value) {
+                                              enteredName = value;
+                                            },
+                                          ),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              onPressed: () {
+                                                enteredName = "";
+                                                Navigator.pop(
+                                                    context, 'Cancel');
+                                              },
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                updateName(
+                                                    snapshot.data!
+                                                        .devices[index].ip,
+                                                    enteredName,
+                                                    snapshot.data!
+                                                        .devices[index].mac,
+                                                    snapshot
+                                                        .data!
+                                                        .devices[index]
+                                                        .allowed);
+                                                Navigator.pop(context, 'OK');
+                                              },
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                snapshot.data!.devices[index]
+                                                        .name.isNotEmpty
+                                                    ? Text(
+                                                        "Name: ${snapshot.data!.devices[index].name}")
+                                                    : const SizedBox(),
+                                                Text(
+                                                    "Ip: ${snapshot.data!.devices[index].ip}"),
+                                              ],
+                                            ),
+                                            Row(
+                                              children: [
+                                                IconButton(
+                                                  onPressed: () {
+                                                    updateStatus(
+                                                        snapshot.data!
+                                                            .devices[index].ip,
+                                                        snapshot
+                                                            .data!
+                                                            .devices[index]
+                                                            .name,
+                                                        snapshot.data!
+                                                            .devices[index].mac,
+                                                        1);
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.check_circle,
+                                                    color: snapshot
+                                                                .data!
+                                                                .devices[index]
+                                                                .allowed ==
+                                                            1
+                                                        ? Colors.green
+                                                        : Colors.grey,
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  onPressed: () {
+                                                    updateStatus(
+                                                        snapshot.data!
+                                                            .devices[index].ip,
+                                                        snapshot
+                                                            .data!
+                                                            .devices[index]
+                                                            .name,
+                                                        snapshot.data!
+                                                            .devices[index].mac,
+                                                        0);
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.cancel_outlined,
+                                                    color: snapshot
+                                                                .data!
+                                                                .devices[index]
+                                                                .allowed ==
+                                                            0
+                                                        ? Colors.red
+                                                        : Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
+                              );
+                            });
+                      }
+                      return const CircularProgressIndicator();
+                    },
+                  ),
                 ),
               ),
             ),
