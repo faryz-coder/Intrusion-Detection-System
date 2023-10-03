@@ -20,6 +20,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   late Future<Devices> device;
   String enteredName = "";
   bool connected = false;
+  late Timer timer;
 
   Future<Devices> fetchAlbum() async {
     final response =
@@ -93,12 +94,20 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   void initState() {
     super.initState();
     device = fetchAlbum();
-    Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+    timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
       setState(() {
         device = fetchAlbum(); /**/
         debugPrint("timer"); /*Future*/
       });
     });
+  }
+
+
+  @override
+  void dispose() {
+    debugPrint("onDispose");
+    timer.cancel();
+    super.dispose();
   }
 
   Future<void> listNetwork() async {
