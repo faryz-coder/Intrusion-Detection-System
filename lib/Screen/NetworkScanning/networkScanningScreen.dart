@@ -5,7 +5,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../../services/notify_services.dart';
 import 'devicesModel.dart';
+
+bool isNotify = false;
+List<String> lastNotifiedIp = [];
+DateTime? lastNotifiedTime;
+int id = 0;
 
 class NetworkScanningScreen extends StatefulWidget {
   NetworkScanningScreen({super.key});
@@ -33,6 +39,8 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
       setState(() {
         connected = true;
       });
+      Devices decode = Devices.fromJson(jsonDecode(response.body));
+      checkToNotify(decode);
       return Devices.fromJson(jsonDecode(response.body));
     } else {
       // If the server did not return a 200 OK response,
@@ -41,6 +49,35 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
         connected = false;
       });
       throw Exception('Failed to load album');
+    }
+  }
+
+  void checkToNotify(Devices device) {
+    String _ip = "";
+
+    device.devices.forEach((element) {
+      if (element.allowed == 0) {
+        _ip = element.ip;
+        // check if ip exist in lastNotifiedIp
+        if (!lastNotifiedIp.contains(_ip)) {
+          // notify if not exist
+          lastNotifiedIp.add(_ip);
+          notify(_ip);
+          lastNotifiedTime = DateTime.now();
+        }
+      }
+    });
+
+  }
+
+  void resetTimeAfterHalfHour() {
+    DateTime now = DateTime.now();
+    if (lastNotifiedTime != null) {
+      Duration difference = now.difference(lastNotifiedTime!);
+      Duration thirtyMin = const Duration(minutes: 30);
+      if (difference > thirtyMin) {
+        lastNotifiedIp.clear();
+      }
     }
   }
 
@@ -79,6 +116,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
       setState(() {
         connected = true;
       });
+      removeFromLastIpIfExist(ip);
       fetchAlbum();
     } else {
       // If the server did not return a 200 OK response,
@@ -87,6 +125,13 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
         connected = false;
       });
       throw Exception('Failed to update name');
+    }
+  }
+
+  void removeFromLastIpIfExist(String ip) {
+    if (lastNotifiedIp.isNotEmpty) {
+      int location = lastNotifiedIp.indexOf(ip);
+      lastNotifiedIp.removeAt(location);
     }
   }
 
@@ -102,7 +147,6 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
     });
   }
 
-
   @override
   void dispose() {
     debugPrint("onDispose");
@@ -113,6 +157,14 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   Future<void> listNetwork() async {
     Devices device = await fetchAlbum();
     debugPrint(device.devices.elementAt(1).ip);
+  }
+
+  void notify(String ip) {
+    NotificationService().showNotification(
+        id: id,
+        title: "Intrusion Detection",
+        body: 'Unauthorized ip detected :: $ip');
+    id += 1;
   }
 
   @override
@@ -135,7 +187,9 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('STATUS'),
-                    connected == true ? const Text('CONNECTED') : const Text('DISCONNECT'),
+                    connected == true
+                        ? const Text('CONNECTED')
+                        : const Text('DISCONNECT'),
                   ],
                 ),
               ),
