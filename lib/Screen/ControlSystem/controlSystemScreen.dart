@@ -94,31 +94,58 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    TextStyle customTextStyle = const TextStyle(
+      fontFamily: 'Roboto', // Change to your desired font family
+      fontSize: 20.0, // Change to your desired font size
+      fontWeight: FontWeight.bold, // You can also specify the font weight
+      color: Colors.white, // You can set the text color as well
+    );
+
     return Scaffold(
       body: Container(
-        color: Colors.green,
+        color: const Color(0xFF35BDCB),
         alignment: Alignment.center,
         child: Column(
           children: [
             SizedBox(
-              height: 56,
+              height: 30,
             ),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: connected == true ? Colors.amber[800] : Colors.red,
+              elevation: 3,
               child: SizedBox(
                 width: double.infinity,
                 height: 100,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('STATUS'),
-                    // connected == true ? const Text('CONNECTED') : const Text('DISCONNECT'),
+                    Text('STATUS', style: customTextStyle,),
+                    connected == true
+                        ? Text('CONNECTED', style: customTextStyle,)
+                        : Text('DISCONNECT', style: customTextStyle,),
                   ],
                 ),
               ),
             ),
+            SizedBox(
+              height: 5,
+            ),
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Text(
+                    "APPLIANCES",
+                    style: customTextStyle,
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: Card(
+                color: const Color(0xFF35BDCB),
+                elevation: 3,
                 child: SizedBox(
                   width: double.infinity,
                   child: FutureBuilder<Appliances>(
@@ -188,7 +215,8 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
                   ),
                 ),
               ),
-            )
+            ),
+            SizedBox(height: 5),
           ],
         ),
       ),

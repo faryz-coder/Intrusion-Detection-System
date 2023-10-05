@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 
 import '../../services/notify_services.dart';
@@ -67,7 +68,6 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
         }
       }
     });
-
   }
 
   void resetTimeAfterHalfHour() {
@@ -129,7 +129,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   }
 
   void removeFromLastIpIfExist(String ip) {
-    if (lastNotifiedIp.isNotEmpty) {
+    if (lastNotifiedIp.contains(ip)) {
       int location = lastNotifiedIp.indexOf(ip);
       lastNotifiedIp.removeAt(location);
     }
@@ -159,43 +159,86 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
     debugPrint(device.devices.elementAt(1).ip);
   }
 
-  void notify(String ip) {
-    NotificationService().showNotification(
-        id: id,
-        title: "Intrusion Detection",
-        body: 'Unauthorized ip detected :: $ip');
-    id += 1;
+  Future<void> notify(String ip) async {
+    final bool? isNotificationGranted = await notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()?.requestPermission();
+
+    if (isNotificationGranted != null && isNotificationGranted) {
+      // Permission granted, show a notification
+      debugPrint("isNotificationGranted : $isNotificationGranted");
+      debugPrint("notify");
+      NotificationService().showNotification(
+          id: id,
+          title: "Intrusion Detection",
+          body: 'Unauthorized ip detected :: $ip');
+      id += 1;
+    } else {
+      // Permission denied
+      // You can display a message to the user or take appropriate action
+      debugPrint("isNotificationGranted : $isNotificationGranted");
+
+    }
+
   }
+
+  final FlutterLocalNotificationsPlugin notificationsPlugin =
+  FlutterLocalNotificationsPlugin();
 
   @override
   Widget build(BuildContext context) {
+
+    TextStyle customTextStyle = const TextStyle(
+      fontFamily: 'Roboto', // Change to your desired font family
+      fontSize: 20.0, // Change to your desired font size
+      fontWeight: FontWeight.bold, // You can also specify the font weight
+      color: Colors.white, // You can set the text color as well
+    );
+
     return Scaffold(
       body: Container(
-        color: Colors.red,
         alignment: Alignment.center,
+        color: const Color(0xFF35BDCB),
         child: Column(
           children: [
             SizedBox(
-              height: 56,
+              height: 30,
             ),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: connected == true ? Colors.amber[800] : Colors.red,
+              elevation: 3,
               child: SizedBox(
                 width: double.infinity,
                 height: 100,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('STATUS'),
+                    Text('STATUS', style: customTextStyle,),
                     connected == true
-                        ? const Text('CONNECTED')
-                        : const Text('DISCONNECT'),
+                        ? Text('CONNECTED', style: customTextStyle,)
+                        : Text('DISCONNECT', style: customTextStyle,),
                   ],
                 ),
               ),
             ),
+            SizedBox(
+              height: 5,
+            ),
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Text(
+                    "DEVICES",
+                    style: customTextStyle,
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: Card(
+                color: const Color(0xFF35BDCB),
+                elevation: 3,
                 child: SizedBox(
                   width: double.infinity,
                   child: FutureBuilder<Devices>(
@@ -339,7 +382,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
                               );
                             });
                       }
-                      return const CircularProgressIndicator();
+                      return Center(child: const CircularProgressIndicator());
                     },
                   ),
                 ),

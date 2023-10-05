@@ -69,25 +69,40 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Colors.amber[800],
-        selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.network_check),
-            icon: Icon(Icons.network_check),
-            label: 'Network',
+      bottomNavigationBar: Container(
+        color: const Color(0xFF35BDCB),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB( 8.0, 0, 8.0, 0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(24),
+              topLeft: Radius.circular(24),
+            ),
+            child: BottomNavigationBar(
+              backgroundColor: Colors.white,
+              onTap: (int index) {
+                setState(() {
+                  currentPageIndex = index;
+                });
+              },
+              // indicatorColor: const Color(0xFF35BDCB),
+              selectedItemColor: Colors.amber[800],
+              iconSize: 30.0,
+              currentIndex: currentPageIndex,
+              items: [
+                BottomNavigationBarItem(
+                  activeIcon: Icon(Icons.network_check),
+                  icon: Icon(Icons.network_check),
+                  label: 'Network',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.offline_bolt),
+                  label: 'Appliances',
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.offline_bolt),
-            label: 'Appliances',
-          ),
-        ],
+        ),
       ),
       body:  <Widget>[
         NetworkScanningScreen(),
