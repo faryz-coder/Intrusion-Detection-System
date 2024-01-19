@@ -89,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
               selectedItemColor: Colors.amber[800],
               iconSize: 30.0,
               currentIndex: currentPageIndex,
-              items: [
+              items: const [
                 BottomNavigationBarItem(
                   activeIcon: Icon(Icons.network_check),
                   icon: Icon(Icons.network_check),
@@ -106,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body:  <Widget>[
         NetworkScanningScreen(),
-        ControlSystemScreen(),
+        const ControlSystemScreen(),
       ][currentPageIndex],
     );
   }

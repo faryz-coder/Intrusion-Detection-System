@@ -15,7 +15,7 @@ DateTime? lastNotifiedTime;
 int id = 0;
 
 class NetworkScanningScreen extends StatefulWidget {
-  NetworkScanningScreen({super.key});
+  const NetworkScanningScreen({super.key});
 
   @override
   State<NetworkScanningScreen> createState() => _NetworkScanningScreenState();
