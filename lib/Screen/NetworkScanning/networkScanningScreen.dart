@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/notify_services.dart';
 import 'devicesModel.dart';
@@ -26,12 +27,24 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
 
   late Future<Devices> device;
   String enteredName = "";
+  String enteredServerIp = "";
   bool connected = false;
   late Timer timer;
+  late SharedPreferences prefs;
+  late String serverIp;
+
+  Future<void> getServerIp() async {
+    prefs = await SharedPreferences.getInstance();
+    serverIp = prefs.getString('serverIp') ?? '192.168.100.57:8080';
+  }
+
+  Future<void> setServerIp(String ip) async {
+    await prefs.setString('serverIp', ip);
+    getServerIp();
+  }
 
   Future<Devices> fetchAlbum() async {
-    final response =
-        await http.get(Uri.parse('http://192.168.100.57:8080/api/data'));
+    final response = await http.get(Uri.parse('http://$serverIp/api/data'));
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
@@ -106,8 +119,8 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
 
   Future<void> updateStatus(
       String ip, String name, String mac, int status) async {
-    final response = await http.get(Uri.parse(
-        'http://192.168.100.57:8080/api/update_status/$ip/$name/$mac/$status'));
+    final response = await http
+        .get(Uri.parse('http://$serverIp/api/update_status/$ip/$name/$mac/$status'));
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
@@ -138,9 +151,11 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   @override
   void initState() {
     super.initState();
+    getServerIp();
     device = fetchAlbum();
     timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
       setState(() {
+        debugPrint("serverIp: $serverIp");
         device = fetchAlbum(); /**/
         debugPrint("timer"); /*Future*/
       });
@@ -162,7 +177,8 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   Future<void> notify(String ip) async {
     final bool? isNotificationGranted = await notificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()?.requestPermission();
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestPermission();
 
     if (isNotificationGranted != null && isNotificationGranted) {
       // Permission granted, show a notification
@@ -177,17 +193,14 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
       // Permission denied
       // You can display a message to the user or take appropriate action
       debugPrint("isNotificationGranted : $isNotificationGranted");
-
     }
-
   }
 
   final FlutterLocalNotificationsPlugin notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   @override
   Widget build(BuildContext context) {
-
     TextStyle customTextStyle = const TextStyle(
       fontFamily: 'Roboto', // Change to your desired font family
       fontSize: 20.0, // Change to your desired font size
@@ -207,17 +220,62 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
             Card(
               color: connected == true ? Colors.amber[800] : Colors.red,
               elevation: 3,
-              child: SizedBox(
-                width: double.infinity,
-                height: 100,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('STATUS', style: customTextStyle,),
-                    connected == true
-                        ? Text('CONNECTED', style: customTextStyle,)
-                        : Text('DISCONNECT', style: customTextStyle,),
-                  ],
+              child: InkWell(
+                splashColor: Colors.blue.withAlpha(30),
+                onLongPress: () {
+                  debugPrint('Card Tapped');
+
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                            title: const Text("Enter Server Ip"),
+                            content: TextField(
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: '',
+                              ),
+                              onChanged: (value) {
+                                enteredServerIp = value;
+                              },
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  enteredServerIp = '';
+                                  Navigator.pop(context, 'Cancel');
+                                },
+                                child: const Text(
+                                  'Cancel',
+                                ),
+                              ),
+                              TextButton(onPressed: () {
+                                setServerIp(enteredServerIp);
+                                Navigator.pop(context, 'OK');
+                              }, child: const Text('OK'))
+                            ],
+                          ));
+                },
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 100,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'STATUS',
+                        style: customTextStyle,
+                      ),
+                      connected == true
+                          ? Text(
+                              'CONNECTED',
+                              style: customTextStyle,
+                            )
+                          : Text(
+                              'DISCONNECT',
+                              style: customTextStyle,
+                            ),
+                    ],
+                  ),
                 ),
               ),
             ),

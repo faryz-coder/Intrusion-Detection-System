@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'appliancesModel.dart';
 
 class ControlSystemScreen extends StatefulWidget {
@@ -14,14 +15,27 @@ class ControlSystemScreen extends StatefulWidget {
 
 class _ControlSystemScreenState extends State<ControlSystemScreen> {
   late Future<Appliances> appliances;
+  String enteredServerIp = "";
   bool light0 = true;
   bool light1 = true;
   bool connected = false;
+  late SharedPreferences prefs;
   late Timer timer;
+  late String serverIp;
+
+  Future<void> getServerIp() async {
+    prefs = await SharedPreferences.getInstance();
+    serverIp = prefs.getString('serverIp') ?? '192.168.100.57:8080';
+  }
+
+  Future<void> setServerIp(String ip) async {
+    await prefs.setString('serverIp', ip);
+    getServerIp();
+  }
 
   Future<Appliances> fetchListAppliances() async {
     final response = await http
-        .get(Uri.parse('http://192.168.100.57:8080/api/appliances/list'));
+        .get(Uri.parse('http://$serverIp/api/appliances/list'));
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
@@ -43,7 +57,7 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
 
   Future<void> updateStatus(String name, int status) async {
     final response = await http.get(
-        Uri.parse('http://192.168.100.57:8080/api/appliances/$name/$status'));
+        Uri.parse('http://$serverIp/api/appliances/$name/$status'));
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
@@ -66,6 +80,7 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
   @override
   void initState() {
     super.initState();
+    getServerIp();
     appliances = fetchListAppliances();
     timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
       setState(() {
@@ -114,17 +129,62 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
             Card(
               color: connected == true ? Colors.amber[800] : Colors.red,
               elevation: 3,
-              child: SizedBox(
-                width: double.infinity,
-                height: 100,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('STATUS', style: customTextStyle,),
-                    connected == true
-                        ? Text('CONNECTED', style: customTextStyle,)
-                        : Text('DISCONNECT', style: customTextStyle,),
-                  ],
+              child: InkWell(
+                splashColor: Colors.blue.withAlpha(30),
+                onLongPress: () {
+                  debugPrint('Card Tapped');
+
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text("Enter Server Ip"),
+                        content: TextField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: '',
+                          ),
+                          onChanged: (value) {
+                            enteredServerIp = value;
+                          },
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              enteredServerIp = '';
+                              Navigator.pop(context, 'Cancel');
+                            },
+                            child: const Text(
+                              'Cancel',
+                            ),
+                          ),
+                          TextButton(onPressed: () {
+                            setServerIp(enteredServerIp);
+                            Navigator.pop(context, 'OK');
+                          }, child: const Text('OK'))
+                        ],
+                      ));
+                },
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 100,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'STATUS',
+                        style: customTextStyle,
+                      ),
+                      connected == true
+                          ? Text(
+                        'CONNECTED',
+                        style: customTextStyle,
+                      )
+                          : Text(
+                        'DISCONNECT',
+                        style: customTextStyle,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
