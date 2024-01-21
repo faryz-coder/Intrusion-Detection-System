@@ -97,7 +97,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
   Future<void> updateName(
       String ip, String name, String mac, int status) async {
     final response = await http.get(Uri.parse(
-        'http://192.168.100.57:8080/api/update/$ip/$name/$mac/$status'));
+        'http://$serverIp/api/update/$ip/$name/$mac/$status'));
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
@@ -214,7 +214,7 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
         color: const Color(0xFF35BDCB),
         child: Column(
           children: [
-            SizedBox(
+            const SizedBox(
               height: 30,
             ),
             Card(
@@ -255,31 +255,45 @@ class _NetworkScanningScreenState extends State<NetworkScanningScreen> {
                             ],
                           ));
                 },
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 100,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'STATUS',
-                        style: customTextStyle,
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional.topEnd,
+                      child: IconButton(
+                        icon: const Icon(Icons.logout),
+                        tooltip: 'Logout',
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/');
+                        },
                       ),
-                      connected == true
-                          ? Text(
-                              'CONNECTED',
-                              style: customTextStyle,
-                            )
-                          : Text(
-                              'DISCONNECT',
-                              style: customTextStyle,
-                            ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 100,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'STATUS',
+                            style: customTextStyle,
+                          ),
+                          connected == true
+                              ? Text(
+                                  'CONNECTED',
+                                  style: customTextStyle,
+                                )
+                              : Text(
+                                  'DISCONNECT',
+                                  style: customTextStyle,
+                                ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(
+            const SizedBox(
               height: 5,
             ),
             Padding(

@@ -164,27 +164,41 @@ class _ControlSystemScreenState extends State<ControlSystemScreen> {
                         ],
                       ));
                 },
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 100,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'STATUS',
-                        style: customTextStyle,
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional.topEnd,
+                      child: IconButton(
+                        icon: const Icon(Icons.logout),
+                        tooltip: 'Logout',
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/');
+                        },
                       ),
-                      connected == true
-                          ? Text(
-                        'CONNECTED',
-                        style: customTextStyle,
-                      )
-                          : Text(
-                        'DISCONNECT',
-                        style: customTextStyle,
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 100,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'STATUS',
+                            style: customTextStyle,
+                          ),
+                          connected == true
+                              ? Text(
+                            'CONNECTED',
+                            style: customTextStyle,
+                          )
+                              : Text(
+                            'DISCONNECT',
+                            style: customTextStyle,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

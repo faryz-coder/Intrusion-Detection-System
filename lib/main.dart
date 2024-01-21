@@ -3,6 +3,7 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:intrusion_detection_app/Screen/ControlSystem/controlSystemScreen.dart';
+import 'package:intrusion_detection_app/Screen/Login/loginScreen.dart';
 import 'package:intrusion_detection_app/Screen/NetworkScanning/networkScanningScreen.dart';
 
 void main() {
@@ -49,8 +50,9 @@ class _MyAppState extends State<MyApp> {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const MyHomePage(),
-        '/second': (context) => const ControlSystemScreen()
+        '/': (context) => const LoginScreen(),
+        '/second': (context) => const MyHomePage(),
+        '/third': (context) => const ControlSystemScreen(),
       },
     );
   }
@@ -105,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       body:  <Widget>[
-        NetworkScanningScreen(),
+        const NetworkScanningScreen(),
         const ControlSystemScreen(),
       ][currentPageIndex],
     );
